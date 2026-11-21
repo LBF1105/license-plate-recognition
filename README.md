@@ -203,15 +203,34 @@ python scripts/compare.py --source data/test_images --ground-truth output/ground
 
 用 `data/test_images/` 中随机抽取的 300 张 CCPD2019 图片（原图 720×1160）对比两种模式：
 
-| 模式 | 检出情况 | 号码准确率 | 耗时（301 张，2 进程） |
+| 模式 | 检出情况 | 整牌正确率 | 耗时（301 张，2 进程） |
 | --- | --- | --- | --- |
-| high 整图 | 298 张检出 1 个车牌，0 张漏检，2 张误检出额外车牌 | 294/300 = **98.0%** | 17.6 s（0.11 s/张） |
+| high 整图 | 300 张全部检出，0 张漏检，2 张误检出额外车牌 | **96.3%**（289/300；字符准确率 99.5%） | 19.2 s（0.12 s/张） |
 | high + 分块 3×2 | 共检出 182 个车牌（含 demo2 的 6 个），大量图片漏检 | — | 61.2 s（0.40 s/张） |
 
-错误以省份字混淆为主（如 皖→陕/苏/沪/粤），额外检出的框多为车牌附近的异物。
+检测指标（IoU≥0.5 匹配）：精确率 99.3%、召回率 100%。
+错误几乎全是**省份字混淆**（琼→鲁、川→浙、皖→陕/苏/沪/粤、藏→苏），号码后 6 位基本全对。
 
 **结论**：CCPD 这类车牌在图中占比大的小图应使用**整图模式**；分块只用于
 `samples/demo2.jpg` 这类 4608×3456 的大图（车牌很小、整体缩放后容易漏检）。
+
+#### 怎么评估
+
+CCPD 的边界框、真实号码、模糊度、倾斜角、亮度都编码在文件名里，真值不需要额外标注。
+用 [`scripts/evaluate.py`](scripts/evaluate.py) 对照识别 CSV 自动生成报告：
+
+```bash
+# 1. 批量识别（只输出 CSV，不写结果图，速度更快）
+python scripts/run_integrated.py --source data/test_images --no-save \
+    --csv samples/results/ccpd300.csv
+# 2. 对照真值评估
+python scripts/evaluate.py --results samples/results/ccpd300.csv \
+    --output samples/results/eval_report.md
+```
+
+报告包含：检出率、检测 TP/FP/FN 与精确率/召回率、整牌正确率、字符准确率、
+耗时（均值 / P50 / P95）、按模糊度/倾斜/亮度分场景的准确率，以及失败案例清单。
+方案二输出同样格式的 CSV 后，可直接复用这个脚本对比。
 
 单张 CPU 推理约 0.4 s（整图）/ 0.9 s（分块）。环境搭建步骤、参数影响与失败案例分析见
 [`docs/hyperlpr3_baseline.md`](docs/hyperlpr3_baseline.md)。
