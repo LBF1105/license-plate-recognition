@@ -127,20 +127,25 @@ pip install -r requirements.txt
 ### 3. 准备测试图片
 
 - **仓库自带 `samples/demo2.jpg`**，克隆后无需任何额外准备即可跑通全流程；
-- 要测自己的图片，放入 `data/test_images/`（该目录不进 git），说明见 [`data/README.md`](data/README.md)。
+- `data/test_images/` 已在本机导入 300 张 CCPD 随机样本（约 27 MB，不进 git），
+  来源与复现方式见 [`data/README.md`](data/README.md)；
+- 要测自己的图片，直接放入 `data/test_images/` 即可。
 
 ### 4. 运行方案
 
 ```bash
-# 方案一：集成式（自带示例图，开箱即用）
-python scripts/run_integrated.py --source samples/demo2.jpg --tile
+# 方案一：集成式（默认扫描 data/test_images）
+python scripts/run_integrated.py --tile
 
-# 方案一：批量跑 data/test_images
-python scripts/run_integrated.py --source data/test_images
+# 方案一：指定单张图片或任意目录
+python scripts/run_integrated.py --source samples/demo2.jpg --tile
+python scripts/run_integrated.py --source /path/to/photos --tile
 
 # 方案二：分步式（需先按 weights/README.md 准备权重）
 python scripts/run_two_stage.py --source data/test_images
 ```
+
+`--source` 默认值为 `data/test_images`，不带参数即批量检测该目录下所有图片。
 
 ### 5. 批量检测大量图片
 
@@ -193,6 +198,20 @@ python scripts/compare.py --source data/test_images --ground-truth output/ground
 - **框上方绿底黑字**：识别号码的拼音形式（`冀A9F3J6` → `JiA9F3J6`）与置信度；
   OpenCV 不支持中文绘制，所以用拼音替代。
 - 颜色本身没有语义：代码统一用绿色（BGR `(0, 255, 0)`）高亮，不代表车牌类型或识别状态。
+
+### 在 300 张 CCPD 随机样本上的实测
+
+用 `data/test_images/` 中随机抽取的 300 张 CCPD2019 图片（原图 720×1160）对比两种模式：
+
+| 模式 | 检出情况 | 号码准确率 | 耗时（301 张，2 进程） |
+| --- | --- | --- | --- |
+| high 整图 | 298 张检出 1 个车牌，0 张漏检，2 张误检出额外车牌 | 294/300 = **98.0%** | 17.6 s（0.11 s/张） |
+| high + 分块 3×2 | 共检出 182 个车牌（含 demo2 的 6 个），大量图片漏检 | — | 61.2 s（0.40 s/张） |
+
+错误以省份字混淆为主（如 皖→陕/苏/沪/粤），额外检出的框多为车牌附近的异物。
+
+**结论**：CCPD 这类车牌在图中占比大的小图应使用**整图模式**；分块只用于
+`samples/demo2.jpg` 这类 4608×3456 的大图（车牌很小、整体缩放后容易漏检）。
 
 单张 CPU 推理约 0.4 s（整图）/ 0.9 s（分块）。环境搭建步骤、参数影响与失败案例分析见
 [`docs/hyperlpr3_baseline.md`](docs/hyperlpr3_baseline.md)。

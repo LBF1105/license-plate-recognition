@@ -105,7 +105,7 @@ def write_csv(csv_path: Path, records: list) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="HyperLPR3 集成式识别（支持批量）")
-    parser.add_argument("--source", required=True, help="单张图片路径或图片文件夹")
+    parser.add_argument("--source", default="data/test_images", help="单张图片路径或图片文件夹（默认 data/test_images）")
     parser.add_argument("--config", default="config/config.yaml")
     parser.add_argument("--tile", action="store_true", help="启用分块检测，提升远处小车牌召回")
     parser.add_argument("--recursive", action="store_true", help="递归遍历子目录（数据集按子集分文件夹时用）")
