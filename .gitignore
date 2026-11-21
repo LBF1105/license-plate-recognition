@@ -50,6 +50,10 @@ CCPD*/
 ccpd*/
 *.tar.xz
 
+# ==================== 增强实验中间产物（增强图不进 git，评估报告 *.md 保留）====================
+data/enhanced_dark_a/
+data/enhanced_dark_b/
+
 # ==================== 输出结果（保留各子目录 .gitkeep）====================
 output/integrated/*
 !output/integrated/.gitkeep
