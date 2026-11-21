@@ -199,7 +199,14 @@ def _percentile(values, q: float) -> float:
 def render_report(result: dict, csv_path: str) -> str:
     s = result["stats"]
     lines = []
-    lines.append("# 方案一（HyperLPR3 集成式）评估报告\n")
+    name = Path(csv_path).name.lower()
+    if "two_stage" in name:
+        title = "方案二（YOLOv8 + LPRNet 分步式）评估报告"
+    elif "integrated" in name:
+        title = "方案一（HyperLPR3 集成式）评估报告"
+    else:
+        title = "车牌识别评估报告"
+    lines.append(f"# {title}\n")
     lines.append(f"- 结果文件：`{csv_path}`")
     lines.append(f"- 有效图片：{s['images']} 张（跳过非 CCPD 命名 {s['skipped']} 张）")
     lines.append(f"- 有检出：{s['detected']} 张（{_pct(s['detected'], s['images'])}）")
