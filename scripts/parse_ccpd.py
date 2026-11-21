@@ -56,13 +56,23 @@ def main() -> None:
 
     output_path = Path(args.output)
     output_path.parent.mkdir(parents=True, exist_ok=True)
+    parsed = 0
+    skipped = []
     with open(output_path, "w", newline="", encoding="utf-8-sig") as f:
         writer = csv.writer(f)
         writer.writerow(["文件名", "真实号码"])
         for img_path in images:
-            writer.writerow([img_path.name, parse_plate(img_path.name)])
+            try:
+                plate = parse_plate(img_path.name)
+            except (ValueError, IndexError):
+                skipped.append(img_path.name)
+                continue
+            writer.writerow([img_path.name, plate])
+            parsed += 1
 
-    print(f"已解析 {len(images)} 张图片，真值保存至 {output_path}")
+    print(f"已解析 {parsed} 张图片，真值保存至 {output_path}")
+    if skipped:
+        print(f"跳过 {len(skipped)} 张非 CCPD 命名文件：{'、'.join(skipped)}")
 
 
 if __name__ == "__main__":
