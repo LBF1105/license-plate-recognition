@@ -142,7 +142,28 @@ python scripts/run_integrated.py --source data/test_images
 python scripts/run_two_stage.py --source data/test_images
 ```
 
-### 5. 双方案对照
+### 5. 批量检测大量图片
+
+目录输入本身就是批量模式，再配合并行、断点续跑与 CSV 汇总即可：
+
+```bash
+# 4 进程并行 + 分块检测 + 跳过已处理图片（中断后可继续）
+python scripts/run_integrated.py --source data/test_images --tile --workers 4 --skip-existing
+```
+
+| 参数 | 说明 |
+| --- | --- |
+| `--workers N` | 多进程并行，建议 4～8（约 CPU 核数的一半） |
+| `--skip-existing` | 结果图已存在就跳过，支持中断后断点续跑 |
+| `--no-save` | 不保存结果图，只写 CSV，吞吐最高 |
+| `--recursive` | 递归子目录（CCPD 按子集分文件夹时使用） |
+| `--csv PATH` | 汇总 CSV 路径，默认 `output/integrated/results.csv` |
+
+实测：12 张 4608×3456 图片、`--tile`、2 进程，总耗时 8.6 s，共识别 72 个车牌；
+CSV 为 `image, plate, confidence, x1, y1, x2, y2, elapsed_ms`，采用 utf-8-sig 编码，
+Excel 直接打开中文不乱码。
+
+### 6. 双方案对照
 
 ```bash
 python scripts/parse_ccpd.py --source data/test_images
