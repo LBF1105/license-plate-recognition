@@ -77,7 +77,7 @@ license-plate-recognition/
                     common.visualize 画框标注
                                 │
                                 ▼
-              分别保存到 output/integrated 或 output/two_stage
+              分别保存到 samples/results 或 output/two_stage
 ```
 
 ## 配置加载
@@ -91,4 +91,4 @@ pip install -r requirements-basic.txt
 python scripts/run_integrated.py --source samples/demo2.jpg --tile
 ```
 
-克隆后无需自备图片即可跑通方案一，结果图输出到 `output/integrated/`。
+克隆后无需自备图片即可跑通方案一，结果图输出到 `samples/results/`。

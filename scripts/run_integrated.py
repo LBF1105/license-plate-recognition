@@ -8,7 +8,7 @@
     # 大批量：4 进程并行，结果图片已存在则跳过
     python scripts/run_integrated.py --source data/test_images --tile --workers 4 --skip-existing
 
-批量结果会汇总写入 CSV（默认 output/integrated/results.csv）。
+批量结果会汇总写入 CSV（默认 samples/results/results.csv）。
 """
 
 import argparse

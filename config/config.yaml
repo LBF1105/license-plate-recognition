@@ -28,7 +28,7 @@ two_stage:
 paths:
   test_images: data/test_images
   output:
-    integrated: output/integrated
+    integrated: samples/results     # 集成式结果图输出目录
     two_stage: output/two_stage
     comparison: output/comparison
 

@@ -63,3 +63,4 @@ runs/
 wandb/
 logs/
 *.log
+samples/results/

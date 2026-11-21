@@ -39,7 +39,7 @@ python scripts/run_integrated.py --source samples/demo2.jpg
 python scripts/run_integrated.py --source data/test_images
 ```
 
-结果图默认写到 `output/integrated/<图片名>_result.jpg`，终端同时打印
+结果图默认写到 `samples/results/<图片名>_result.jpg`，终端同时打印
 每张车牌号码、置信度、位置与平均耗时。
 
 ### 3.1 批量检测大量图片
@@ -54,7 +54,7 @@ python scripts/run_integrated.py --source data/test_images --tile --workers 4 --
 python scripts/run_integrated.py --source data/test_images --tile --workers 8 --no-save
 ```
 
-- 汇总 CSV 默认 `output/integrated/results.csv`，列：`image, plate, confidence, x1, y1, x2, y2, elapsed_ms`
+- 汇总 CSV 默认 `samples/results/results.csv`，列：`image, plate, confidence, x1, y1, x2, y2, elapsed_ms`
   （一张图多个车牌时每行一个车牌；utf-8-sig，Excel 直接打开）。
 - `--skip-existing` 以结果图是否存在判断已处理，适合几万张图片中断后继续。
 - 实测：12 张 4608×3456、`--tile`、2 进程，总耗时 8.6 s，识别 72 个车牌；
