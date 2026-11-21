@@ -184,6 +184,16 @@ python scripts/compare.py --source data/test_images --ground-truth output/ground
 | high（640×640） | 3 | 冀A9F3J6、冀A8C309、苏E67A12 |
 | high + 分块 3×2 | 6 | 冀A8C309、冀A7F691、冀A7837P、冀A2036Y、苏E67A12、冀A9F3J6 |
 
+效果示例（`--tile` 模式）：
+
+![samples/demo2.jpg 识别效果](docs/images/demo2_result.jpg)
+
+- **绿色框**：检测到的车牌区域，四个角坐标 `(x1, y1)`、`(x2, y2)` 就是返回结果里的
+  `bbox`，均基于原图坐标系，可直接用于裁剪或二次定位。
+- **框上方绿底黑字**：识别号码的拼音形式（`冀A9F3J6` → `JiA9F3J6`）与置信度；
+  OpenCV 不支持中文绘制，所以用拼音替代。
+- 颜色本身没有语义：代码统一用绿色（BGR `(0, 255, 0)`）高亮，不代表车牌类型或识别状态。
+
 单张 CPU 推理约 0.4 s（整图）/ 0.9 s（分块）。环境搭建步骤、参数影响与失败案例分析见
 [`docs/hyperlpr3_baseline.md`](docs/hyperlpr3_baseline.md)。
 
