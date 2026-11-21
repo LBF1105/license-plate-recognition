@@ -30,16 +30,23 @@
 
 | 方案 | 测试数量 | 正确数量 | 正确率 | 平均耗时（ms/张） |
 | --- | --- | --- | --- | --- |
-| 集成式 HyperLPR3 |  |  |  |  |
-| 分步式 YOLO+LPRNet |  |  |  |  |
+| 集成式 HyperLPR3 | 300 | 289 | 96.3% | 80 |
+| 分步式 YOLOv8+LPRNet | 300 | 273 | 91.0% | 60 |
+
+（2026-11 实测，测试集为 CCPD 模糊子集 300 张；完整报告见 `samples/results/`
+下的 `eval_integrated.md`、`eval_two_stage.md`、`comparison.md`。）
 
 ## 六、执行方式
 
 ```bash
-# 解析 CCPD 真值
-python scripts/parse_ccpd.py --source data/test_images
-# 双方案对照
-python scripts/compare.py --source data/test_images --ground-truth output/ground_truth.csv
+# 1. 两方案分别批量识别（只输出 CSV）
+python scripts/run_integrated.py --source data/test_images --no-save --csv samples/results/integrated_ccpd.csv
+python scripts/run_two_stage.py --source data/test_images --no-save --csv samples/results/two_stage_ccpd.csv
+# 2. 各自对照 CCPD 真值评估（真值编码在文件名中，由 evaluate.py 内部解析）
+python scripts/evaluate.py --results samples/results/integrated_ccpd.csv --output samples/results/eval_integrated.md
+python scripts/evaluate.py --results samples/results/two_stage_ccpd.csv --output samples/results/eval_two_stage.md
+# 3. 生成并排对照报告（总览 + 分场景 + 失败交集）
+python scripts/compare.py --integrated samples/results/integrated_ccpd.csv --two-stage samples/results/two_stage_ccpd.csv --output samples/results/comparison.md
 ```
 
-对照结果输出到 `output/comparison`。若某方案增强后没有提升，分析其原因同样属于有效实验结论。
+对照结果输出到 `samples/results/`。若某方案增强后没有提升，分析其原因同样属于有效实验结论。
