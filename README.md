@@ -88,7 +88,8 @@ license-plate-recognition/
 │   └── hyperlpr3_baseline.md       # 方案一环境搭建与实测记录
 └── tests/
     ├── test_smoke.py
-    └── test_integrated.py
+    ├── test_integrated.py
+    └── test_two_stage_pipeline.py
 ```
 
 ---
@@ -172,11 +173,17 @@ Excel 直接打开中文不乱码。
 ### 6. 双方案对照
 
 ```bash
-python scripts/parse_ccpd.py --source data/test_images
-python scripts/compare.py --source data/test_images --ground-truth output/ground_truth.csv
+# 1. 两方案分别批量识别（只输出 CSV）
+python scripts/run_integrated.py --source data/test_images --no-save --csv samples/results/integrated_ccpd.csv
+python scripts/run_two_stage.py --source data/test_images --no-save --csv samples/results/two_stage_ccpd.csv
+# 2. 各自对照 CCPD 真值评估
+python scripts/evaluate.py --results samples/results/integrated_ccpd.csv --output samples/results/eval_integrated.md
+python scripts/evaluate.py --results samples/results/two_stage_ccpd.csv --output samples/results/eval_two_stage.md
+# 3. 生成并排对照报告（总览 + 分场景 + 失败交集）
+python scripts/compare.py --integrated samples/results/integrated_ccpd.csv --two-stage samples/results/two_stage_ccpd.csv --output samples/results/comparison.md
 ```
 
-对照结果输出到 `output/comparison`，实验设计见 [`docs/experiment_design.md`](docs/experiment_design.md)。
+对照报告输出到 `samples/results/`，实验设计见 [`docs/experiment_design.md`](docs/experiment_design.md)。
 
 ---
 
@@ -214,6 +221,22 @@ python scripts/compare.py --source data/test_images --ground-truth output/ground
 
 **结论**：CCPD 这类车牌在图中占比大的小图应使用**整图模式**；分块只用于
 `samples/demo2.jpg` 这类 4608×3456 的大图（车牌很小、整体缩放后容易漏检）。
+
+### 双方案对照结果（同一批 300 张 CCPD 模糊子集）
+
+| 指标 | 方案一 HyperLPR3 集成式 | 方案二 YOLOv8+LPRNet 分步式 |
+| --- | --- | --- |
+| 检测精确率 / 召回率 | 99.3% / 100% | 99.0% / 100% |
+| 整牌正确率 | **96.3%**（289/300） | 91.0%（273/300） |
+| 字符准确率 | 99.5% | 97.6% |
+| 平均耗时 | 0.08 s/张 | 0.06 s/张 |
+| 明显倾斜（>15°）整牌正确率 | 94.3% | 62.9% |
+
+差距不在检测（两方案召回率均为 100%），而在识别的抗倾斜能力：车牌基本水平时
+两方案仅差 0.6 个百分点，明显倾斜时拉开到 31 个百分点——集成方案内部带车牌
+校正，分步式直接裁剪轴对齐框、无透视校正。分步式的优势是速度更快且结构透明、
+可逐环节改进（透视校正、省份字后处理校正）。完整报告见 `samples/results/`
+下的 `eval_integrated.md`、`eval_two_stage.md` 与 `comparison.md`。
 
 #### 怎么评估
 
@@ -254,14 +277,16 @@ pytest tests/
 
 ## 九、团队分工
 
-| 成员 | 主要职责 |
-| --- | --- |
-| 成员 A | 环境搭建、双方案核心模块、代码整合 |
-| 成员 B | 数据集准备、CCPD 真值解析 |
-| 成员 C | 批量测试、正确率统计、对照与结果分析 |
-| 成员 D | 可视化、流程图、文档与 PPT |
+| 成员 | 技术分工 | 报告与 PPT 分工（各自负责自己部分） |
+| --- | --- | --- |
+| 成员 A | 环境搭建、双方案核心模块、代码整合 | 报告「系统设计与实现」章节；PPT 系统架构与实现页 |
+| 成员 B | 数据集准备、CCPD 真值解析 | 报告「数据集与评估方法」章节；PPT 数据集介绍页 |
+| 成员 C | 批量测试、正确率统计、对照与结果分析 | 报告「实验结果与对照分析」章节；PPT 结果对照页 |
+| 成员 D | 可视化、流程图 | 报告配图与「失败案例分析」素材整理；PPT 封面、目录、流程图页，并负责最终统稿 |
 
-每位成员均须参与程序运行与实验测试，每人至少完成 5 张图片的识别测试。
+报告与 PPT 实行“谁的活谁写”：每位成员撰写自己分工对应的章节与页面，
+成员 D 只做统稿（统一格式、拼合、校对）与串联页，不代写。
+每位成员均须参与程序运行与实验测试，每人至少完成 5 张图片的识别测试并记录结果。
 
 ---
 
