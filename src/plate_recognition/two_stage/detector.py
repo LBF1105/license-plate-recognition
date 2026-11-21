@@ -6,7 +6,11 @@ import numpy as np
 
 
 class PlateDetector:
-    """YOLO 车牌检测器，在整图中定位车牌边界框。"""
+    """YOLO 车牌检测器，在整图中定位车牌边界框。
+
+    使用 we0091234/yolov8-plate 的 YOLOv8 检测权重，
+    类别 0 = single（单层牌），1 = double（双层牌）。
+    """
 
     def __init__(
         self,
@@ -23,8 +27,41 @@ class PlateDetector:
 
     def load(self) -> None:
         """加载 YOLO 检测权重。"""
-        # TODO: from ultralytics import YOLO 并加载权重
-        raise NotImplementedError("YOLO 模型加载待实现")
+        from ultralytics import YOLO
+
+        self.model = YOLO(self.weights)
+
+    def detect_detailed(
+        self, image: np.ndarray
+    ) -> List[Tuple[int, int, int, int, float, int]]:
+        """检测车牌，返回 (x1, y1, x2, y2, confidence, class_id) 列表。
+
+        class_id 0 = 单层牌，1 = 双层牌，流水线靠它决定是否做双层拼接。
+        """
+        if self.model is None:
+            raise RuntimeError("检测模型未加载，请先调用 load()。")
+        results = self.model.predict(
+            image,
+            conf=self.conf_threshold,
+            iou=self.iou_threshold,
+            device=self.device,
+            verbose=False,
+        )
+        detections = []
+        for result in results:
+            for box in result.boxes:
+                x1, y1, x2, y2 = box.xyxy[0].tolist()
+                detections.append(
+                    (
+                        int(x1),
+                        int(y1),
+                        int(x2),
+                        int(y2),
+                        float(box.conf[0]),
+                        int(box.cls[0]),
+                    )
+                )
+        return detections
 
     def detect(self, image: np.ndarray) -> List[Tuple[int, int, int, int, float]]:
         """检测图像中的车牌。
@@ -32,7 +69,4 @@ class PlateDetector:
         返回:
             (x1, y1, x2, y2, confidence) 列表。
         """
-        if self.model is None:
-            raise RuntimeError("检测模型未加载，请先调用 load()。")
-        # TODO: 推理并解析边界框坐标
-        raise NotImplementedError("YOLO 检测待实现")
+        return [d[:5] for d in self.detect_detailed(image)]

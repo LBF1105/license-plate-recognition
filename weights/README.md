@@ -24,6 +24,8 @@ pip install hyperlpr3
 1. 从开源中文车牌识别项目（YOLO + LPRNet）README 提供的网盘链接下载预训练权重，通常基于 CCPD 训练。
 2. 下载后按上表重命名并放入本目录。
 3. 也可使用 CCPD 自行训练后将权重保存到本目录。
+plate_detect.pt获取网址：https://raw.githubusercontent.com/we0091234/yolov8-plate/master/weights/yolov8s.pt
+lprnet.pth获取网址：https://raw.githubusercontent.com/we0091234/yolov8-plate/master/weights/plate_rec_color.pth
 
 ## 放置后的目录结构
 
