@@ -5,6 +5,7 @@ hyperlpr3>=0.1.2
 ultralytics>=8.3.0
 torch>=2.0.0
 torchvision>=0.15.0
+imutils>=0.5.4
 
 # ==================== 共用依赖 ====================
 onnxruntime>=1.16.0
