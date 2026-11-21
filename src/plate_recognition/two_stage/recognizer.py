@@ -4,15 +4,16 @@ import cv2
 import numpy as np
 import torch
 
-from .plate_net import myNet_ocr_color
+from .plate_net import myNet_ocr
 
 
 class PlateRecognizer:
     """车牌字符识别器，对裁剪出的车牌输出号码字符串。
 
-    网络与权重来自 we0091234 项目（myNet_ocr_color，LPRNet 式
+    网络与权重来自 we0091234 项目（myNet_ocr，LPRNet 式
     CNN + CTC 结构）：输入 168x48，归一化 (x/255 - 0.588) / 0.193，
-    字符表以 # 为空白符（下标 0），与权重严格同源。
+    字符表以 # 为空白符（下标 0）。权重为带颜色头版本，本项目不用
+    颜色输出，加载时忽略其颜色支路参数（见 load 方法）。
     """
 
     INPUT_WIDTH = 168
@@ -31,13 +32,16 @@ class PlateRecognizer:
     def load(self) -> None:
         """加载识别权重（checkpoint 内含 state_dict 与 cfg）。"""
         checkpoint = torch.load(self.weights, map_location=self.device)
-        model = myNet_ocr_color(
+        model = myNet_ocr(
             num_classes=len(self.CHARS),
             export=True,
             cfg=checkpoint["cfg"],
-            color_num=5,
         )
-        model.load_state_dict(checkpoint["state_dict"], strict=False)
+        # strict=False 仅用于忽略权重中的颜色支路参数；字符通路
+        # 所需参数若有缺失，直接报错，避免带随机参数静默运行。
+        incompatible = model.load_state_dict(checkpoint["state_dict"], strict=False)
+        if incompatible.missing_keys:
+            raise RuntimeError(f"权重缺少字符识别所需参数：{incompatible.missing_keys}")
         model.to(self.device)
         model.eval()
         self.model = model
