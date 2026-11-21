@@ -17,9 +17,8 @@ sudo apt-get install -y python3-pip python3-venv
 python3 -m venv .venv
 source .venv/bin/activate
 
-# 3) 安装依赖（国内可用清华源加速）
-pip install hyperlpr3 -i https://pypi.tuna.tsinghua.edu.cn/simple
-pip install -r requirements.txt
+# 3) 安装方案一最小依赖（国内可用清华源加速）
+pip install -r requirements-basic.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
 ```
 
 - 首次 `import hyperlpr3` 会自动下载模型到 `~/.hyperlpr3/20230229/onnx/`，
@@ -30,23 +29,26 @@ pip install -r requirements.txt
 ## 3. 运行方式
 
 ```bash
-# 整图直接识别（默认）
-python scripts/run_integrated.py --source data/test_images/demo2.jpg
+# 自带示例图，克隆后直接可跑
+python scripts/run_integrated.py --source samples/demo2.jpg --tile
 
-# 分块识别（大图中远处小车牌漏检时使用）
-python scripts/run_integrated.py --source data/test_images/demo2.jpg --tile
+# 整图直接识别（默认）
+python scripts/run_integrated.py --source samples/demo2.jpg
+
+# 批量跑自己的图片
+python scripts/run_integrated.py --source data/test_images
 ```
 
 结果图默认写到 `output/integrated/<图片名>_result.jpg`，终端同时打印
 每张车牌号码、置信度、位置与平均耗时。
 
-## 4. 实测结果（demo2.jpg，4608×3456，CPU）
+## 4. 实测结果（samples/demo2.jpg，4608×3456，CPU）
 
 | 模式 | 识别数量 | 识别到的车牌 | 单张耗时 |
 | --- | --- | --- | --- |
-| low（320×320） | 2 | 冀A9F3J6、冀A7F691 | 约 0.36 s |
-| high（640×640） | 3 | 冀A9F3J6、冀A8C309、苏E67A12 | 约 0.36 s |
-| high + 分块 3×2 | 6 | 冀A8C309、冀A7F691、冀A7837P、冀A2036Y、苏E67A12、冀A9F3J6 | 约 1.1 s |
+| low（320×320） | 2 | 冀A9F3J6、冀A7F691 | 约 0.4 s |
+| high（640×640） | 3 | 冀A9F3J6、冀A8C309、苏E67A12 | 约 0.4 s |
+| high + 分块 3×2 | 6 | 冀A8C309、冀A7F691、冀A7837P、冀A2036Y、苏E67A12、冀A9F3J6 | 约 0.9 s |
 
 结论：
 
@@ -63,6 +65,7 @@ python scripts/run_integrated.py --source data/test_images/demo2.jpg --tile
 - 中文车牌无法用 OpenCV `putText` 直接绘制，`common/visualize.py`
   里做了省份简称→拼音的映射，标签显示为 `JiA9F3J6 1.00` 形式。
 - 分块会带来重复框，已用 IoU>0.5 合并、保留置信度更高的结果。
+- 首次运行需联网下载模型（约 12 MB）。
 
 ## 6. 代码位置
 
@@ -72,5 +75,6 @@ python scripts/run_integrated.py --source data/test_images/demo2.jpg --tile
 
 ## 7. 数据说明
 
-`data/test_images/` 下的示例图被 `.gitignore` 忽略，需自行放入；
-运行前把 `demo2.jpg` 放到该目录。
+- `samples/demo2.jpg` 随仓库提供，用于开箱即用的效果演示与回归验证。
+- `data/test_images/` 用于放置自备的测试图片（被 `.gitignore` 忽略，不进 git），
+  组织方式见 `data/README.md`。

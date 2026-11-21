@@ -1,0 +1,9 @@
+# 方案一（HyperLPR3 集成式）最小依赖
+# 只跑基础任务时装这个即可；双方案完整对照请用 requirements.txt
+hyperlpr3>=0.1.2
+onnxruntime>=1.16.0
+opencv-python>=4.8.0
+numpy>=1.24.0
+Pillow>=9.0.0
+PyYAML>=6.0
+tqdm>=4.65.0

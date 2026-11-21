@@ -62,7 +62,8 @@ license-plate-recognition/
 ├── README.md
 ├── LICENSE
 ├── .gitignore
-├── requirements.txt
+├── requirements.txt                # 完整依赖（双方案）
+├── requirements-basic.txt          # 方案一最小依赖
 ├── config/config.yaml              # 双方案配置
 ├── src/plate_recognition/
 │   ├── integrated/                 # 方案一：HyperLPR3
@@ -75,6 +76,7 @@ license-plate-recognition/
 │   └── parse_ccpd.py               # CCPD 真值解析
 ├── weights/                        # 权重（不进 git）
 ├── data/test_images/               # 测试图片（不进 git）
+├── samples/demo2.jpg               # 自带示例图，开箱即用
 ├── output/
 │   ├── integrated/
 │   ├── two_stage/
@@ -110,25 +112,33 @@ cd license-plate-recognition
 ### 2. 安装依赖
 
 ```bash
+# 只跑方案一（基础任务）：最小依赖
+pip install -r requirements-basic.txt
+
+# 需要双方案完整对照时（含 torch / ultralytics，体积较大）
 pip install -r requirements.txt
 ```
 
-> Ubuntu 24.04+ 的 Python 受 PEP 668 保护，建议先建虚拟环境：
-> `python3 -m venv .venv && source .venv/bin/activate`。
+> - Ubuntu 24.04+ 的 Python 受 PEP 668 保护，建议先建虚拟环境：
+>   `python3 -m venv .venv && source .venv/bin/activate`。
+> - 首次运行方案一会自动下载 HyperLPR3 模型（约 12 MB）到 `~/.hyperlpr3/`，
+>   需要联网；下载完成后可离线使用。
 
-### 3. 准备权重与测试图片
+### 3. 准备测试图片
 
-- 权重：见 [`weights/README.md`](weights/README.md)，HyperLPR3 随包加载，分步式需手动下载
-- 测试图片：放入 `data/test_images/`，数据集说明见 [`data/README.md`](data/README.md)
+- **仓库自带 `samples/demo2.jpg`**，克隆后无需任何额外准备即可跑通全流程；
+- 要测自己的图片，放入 `data/test_images/`（该目录不进 git），说明见 [`data/README.md`](data/README.md)。
 
 ### 4. 运行方案
 
 ```bash
-# 方案一：集成式
+# 方案一：集成式（自带示例图，开箱即用）
+python scripts/run_integrated.py --source samples/demo2.jpg --tile
+
+# 方案一：批量跑 data/test_images
 python scripts/run_integrated.py --source data/test_images
-# 方案一（分块检测，提升大图中远处小车牌召回）
-python scripts/run_integrated.py --source data/test_images --tile
-# 方案二：分步式
+
+# 方案二：分步式（需先按 weights/README.md 准备权重）
 python scripts/run_two_stage.py --source data/test_images
 ```
 
@@ -145,7 +155,7 @@ python scripts/compare.py --source data/test_images --ground-truth output/ground
 
 ## 六、方案一实测结果（CPU）
 
-测试图 `demo2.jpg`（4608×3456，小区停车场景，可见 6 个车牌）：
+测试图 `samples/demo2.jpg`（4608×3456，小区停车场景，可见 6 个车牌）：
 
 | 模式 | 识别数量 | 识别到的车牌 |
 | --- | --- | --- |
@@ -153,7 +163,7 @@ python scripts/compare.py --source data/test_images --ground-truth output/ground
 | high（640×640） | 3 | 冀A9F3J6、冀A8C309、苏E67A12 |
 | high + 分块 3×2 | 6 | 冀A8C309、冀A7F691、冀A7837P、冀A2036Y、苏E67A12、冀A9F3J6 |
 
-单张 CPU 推理约 0.36 s（整图）/ 1.1 s（分块）。环境搭建步骤、参数影响与失败案例分析见
+单张 CPU 推理约 0.4 s（整图）/ 0.9 s（分块）。环境搭建步骤、参数影响与失败案例分析见
 [`docs/hyperlpr3_baseline.md`](docs/hyperlpr3_baseline.md)。
 
 ---

@@ -9,7 +9,8 @@ license-plate-recognition/
 ├── README.md                    # 项目主文档
 ├── LICENSE                      # MIT 许可证
 ├── .gitignore                   # Git 忽略规则
-├── requirements.txt             # 依赖清单
+├── requirements.txt             # 完整依赖（双方案）
+├── requirements-basic.txt       # 方案一最小依赖
 │
 ├── config/
 │   └── config.yaml              # 双方案配置：档位、权重、阈值、设备、分块参数
@@ -38,8 +39,10 @@ license-plate-recognition/
 │
 ├── weights/                     # 模型权重（不进 git）
 ├── data/
-│   ├── test_images/             # 测试图片（不进 git）
+│   ├── test_images/             # 自备测试图片（不进 git）
 │   └── README.md
+├── samples/
+│   └── demo2.jpg                # 自带示例图，开箱即用
 ├── output/                      # 分方案输出（不进 git）
 │   ├── integrated/
 │   ├── two_stage/
@@ -80,3 +83,12 @@ license-plate-recognition/
 ## 配置加载
 
 脚本统一读取 `config/config.yaml`，两方案的档位、权重路径、阈值、设备与分块参数均在配置中声明，修改配置即可切换，无需改动源码。
+
+## 快速验证
+
+```bash
+pip install -r requirements-basic.txt
+python scripts/run_integrated.py --source samples/demo2.jpg --tile
+```
+
+克隆后无需自备图片即可跑通方案一，结果图输出到 `output/integrated/`。
