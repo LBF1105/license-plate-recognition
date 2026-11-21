@@ -52,9 +52,13 @@ CCPD*/
 ccpd*/
 *.tar.xz
 
-# ==================== 输出结果 ====================
-output/*
-!output/.gitkeep
+# ==================== 输出结果（保留各子目录 .gitkeep）====================
+output/integrated/*
+!output/integrated/.gitkeep
+output/two_stage/*
+!output/two_stage/.gitkeep
+output/comparison/*
+!output/comparison/.gitkeep
 runs/
 wandb/
 logs/
