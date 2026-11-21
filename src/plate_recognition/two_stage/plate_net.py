@@ -1,22 +1,33 @@
-"""车牌识别网络结构定义（字符识别，CNN + CTC）。
+"""车牌识别网络结构定义（字符识别 + 颜色分类）。
 
-基于 we0091234 项目的 plateNet.py 精简，仅保留 myNet_ocr。
-权重 plate_rec_color.pth 为带颜色头版本，其颜色支路与字符通路并行、
-互不影响；本项目不使用颜色输出，加载时由 recognizer 以 strict=False
-忽略颜色支路参数（字符通路参数缺失会直接报错，见 recognizer.load）。
+基于 we0091234 项目的 plateNet.py 精简：仅保留本项目实际使用的
+myNet_ocr_color，删除未被调用的 myNet_ocr、myNet、MyNet_color 三个类
+及注释掉的废弃代码。保留类的结构与参数命名与上游完全一致，
+以保证预训练权重（weights/lprnet.pth）可正常加载。
 """
 
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 
 
-class myNet_ocr(nn.Module):
-    def __init__(self,cfg=None,num_classes=78,export=False):
-        super(myNet_ocr, self).__init__()
+class myNet_ocr_color(nn.Module):
+    def __init__(self,cfg=None,num_classes=78,export=False,color_num=None):
+        super(myNet_ocr_color, self).__init__()
         if cfg is None:
             cfg =[32,32,64,64,'M',128,128,'M',196,196,'M',256,256]
         self.feature = self.make_layers(cfg, True)
         self.export = export
+        self.color_num=color_num
+        self.conv_out_num=12  #颜色第一个卷积层输出通道12
+        if self.color_num:
+            self.conv1=nn.Conv2d(cfg[-1],self.conv_out_num,kernel_size=3,stride=2)
+            self.bn1=nn.BatchNorm2d(self.conv_out_num)
+            self.relu1=nn.ReLU(inplace=True)
+            self.gap =nn.AdaptiveAvgPool2d(output_size=1)
+            self.color_classifier=nn.Conv2d(self.conv_out_num,self.color_num,kernel_size=1,stride=1)
+            self.color_bn = nn.BatchNorm2d(self.color_num)
+            self.flatten = nn.Flatten()
         self.loc =  nn.MaxPool2d((5, 2), (1, 1),(0,1),ceil_mode=False)
         self.newCnn=nn.Conv2d(cfg[-1],num_classes,1,1)
     def make_layers(self, cfg, batch_norm=False):
@@ -44,24 +55,36 @@ class myNet_ocr(nn.Module):
 
     def forward(self, x):
         x = self.feature(x)
+        if self.color_num:
+            x_color=self.conv1(x)
+            x_color=self.bn1(x_color)
+            x_color =self.relu1(x_color)
+            x_color = self.color_classifier(x_color)
+            x_color = self.color_bn(x_color)
+            x_color =self.gap(x_color)
+            x_color = self.flatten(x_color) 
         x=self.loc(x)
         x=self.newCnn(x)
-        # x=self.newBn(x)
+       
         if self.export:
-            conv = x.squeeze(2)
+            conv = x.squeeze(2) # b *512 * width
             conv = conv.transpose(2,1)  # [w, b, c]
+            if self.color_num:
+                return conv,x_color
             return conv
         else:
             b, c, h, w = x.size()
             assert h == 1, "the height of conv must be 1"
-            conv = x.squeeze(2)
+            conv = x.squeeze(2) # b *512 * width
             conv = conv.permute(2, 0, 1)  # [w, b, c]
-            output = torch.softmax(conv, dim=2)
+            output = F.log_softmax(conv, dim=2)
+            if self.color_num:
+                return output,x_color
             return output
 
 
 if __name__ == "__main__":
     x = torch.randn(1, 3, 48, 168)
-    model = myNet_ocr(num_classes=78, export=True)
-    out = model(x)
-    print(out.shape)  # 期望 (1, 21, 78)
+    model = myNet_ocr_color(num_classes=78, export=True, color_num=5)
+    conv, color = model(x)
+    print(conv.shape, color.shape)  # 期望 (1, 21, 78) 与 (1, 5)
