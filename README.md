@@ -73,9 +73,10 @@ license-plate-recognition/
 │   ├── run_integrated.py           # 运行集成式
 │   ├── run_two_stage.py            # 运行分步式
 │   ├── compare.py                  # 双方案对照
-│   └── parse_ccpd.py               # CCPD 真值解析
+│   ├── parse_ccpd.py               # CCPD 真值解析
+│   └── evaluate.py                 # 按真值评估识别结果
 ├── weights/                        # 权重（不进 git）
-├── data/test_images/               # 测试图片（不进 git）
+├── data/test_images/               # 测试图片（300 张 CCPD，随仓库提供）
 ├── samples/demo2.jpg               # 自带示例图，开箱即用
 ├── output/
 │   ├── integrated/
@@ -127,7 +128,7 @@ pip install -r requirements.txt
 ### 3. 准备测试图片
 
 - **仓库自带 `samples/demo2.jpg`**，克隆后无需任何额外准备即可跑通全流程；
-- `data/test_images/` 已在本机导入 300 张 CCPD 随机样本（约 27 MB，不进 git），
+- `data/test_images/` 随仓库提供 300 张 CCPD 随机样本（约 27 MB），
   来源与复现方式见 [`data/README.md`](data/README.md)；
 - 要测自己的图片，直接放入 `data/test_images/` 即可。
 
