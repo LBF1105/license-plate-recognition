@@ -1,0 +1,26 @@
+# ============================================================
+# 车牌识别系统配置文件
+# 所有路径相对于项目根目录
+# ============================================================
+
+# -------------------- 车牌检测（YOLO）--------------------
+detector:
+  weights: weights/plate_detect.pt   # YOLO 车牌检测权重路径
+  conf_threshold: 0.25               # 置信度阈值，检测不到时可适当调低
+  iou_threshold: 0.45                # NMS 非极大值抑制 IoU 阈值
+  device: cpu                        # cpu 或 0（第一块 GPU）
+
+# -------------------- 字符识别（LPRNet）--------------------
+recognizer:
+  weights: weights/lprnet.pth        # LPRNet 识别权重路径
+  device: cpu
+
+# -------------------- 数据与输出路径 --------------------
+paths:
+  test_images: data/test_images      # 测试图片目录
+  output: output                     # 识别结果输出目录
+
+# -------------------- 车牌规则 --------------------
+plate:
+  blue_plate_length: 7               # 普通蓝牌/黄牌字符数
+  green_plate_length: 8              # 新能源绿牌字符数

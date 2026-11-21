@@ -1,0 +1,61 @@
+# ==================== Python ====================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+
+# ==================== 虚拟环境 ====================
+.venv/
+venv/
+env/
+ENV/
+
+# ==================== 测试与覆盖率 ====================
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# ==================== IDE / 编辑器 ====================
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# ==================== 操作系统 ====================
+.DS_Store
+Thumbs.db
+
+# ==================== Jupyter ====================
+.ipynb_checkpoints/
+
+# ==================== 模型权重（不进 git，见 weights/README.md）====================
+*.pt
+*.pth
+*.onnx
+*.weights
+*.engine
+*.mlmodel
+!weights/README.md
+
+# ==================== 数据集（不进 git，见 data/README.md）====================
+data/raw/
+data/test_images/*
+!data/test_images/.gitkeep
+CCPD*/
+ccpd*/
+*.tar.xz
+
+# ==================== 输出结果 ====================
+output/*
+!output/.gitkeep
+runs/
+wandb/
+logs/
+*.log
