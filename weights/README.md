@@ -16,16 +16,18 @@ pip install hyperlpr3
 
 | 文件名 | 模型 | 用途 |
 | --- | --- | --- |
-| `plate_detect.pt` | YOLO（YOLOv8 / YOLOv5） | 车牌检测，输出边界框 |
+| `plate_detect.pt` | YOLOv8（we0091234/yolov8-plate） | 车牌检测，输出边界框（单层/双层两类） |
 | `lprnet.pth` | LPRNet | 车牌字符识别，输出号码 |
 
 ### 获取方式
 
-1. 从开源中文车牌识别项目（YOLO + LPRNet）README 提供的网盘链接下载预训练权重，通常基于 CCPD 训练。
+1. 从开源中文车牌识别项目 we0091234/yolov8-plate 下载预训练权重（基于 CCPD 训练），直达链接见下方。
 2. 下载后按上表重命名并放入本目录。
 3. 也可使用 CCPD 自行训练后将权重保存到本目录。
-plate_detect.pt获取网址：https://raw.githubusercontent.com/we0091234/yolov8-plate/master/weights/yolov8s.pt
-lprnet.pth获取网址：https://raw.githubusercontent.com/we0091234/yolov8-plate/master/weights/plate_rec_color.pth
+plate_detect.pt 获取网址：https://raw.githubusercontent.com/we0091234/yolov8-plate/master/weights/yolov8s.pt
+lprnet.pth 获取网址：https://raw.githubusercontent.com/we0091234/yolov8-plate/master/weights/plate_rec_color.pth
+
+下载后需改名放入本目录：`yolov8s.pt` → `plate_detect.pt`，`plate_rec_color.pth` → `lprnet.pth`。
 
 ## 放置后的目录结构
 
