@@ -14,7 +14,7 @@
 
 | 方案 | 架构 | 特征 |
 | --- | --- | --- |
-| 方案一（基线） | HyperLPR3 集成式 | 框架内部端到端完成检测与识别，一次调用直接输出号码 |
+| 方案一（基线） | HyperLPR3 集成式 | 框架内部端到端完成检测与识别，一次调用直接输出号码；**已实现并完成 CPU 实测** |
 | 方案二（对照） | YOLO + LPRNet 分步式 | 检测与识别拆分为独立模块，可分别替换与调优 |
 
 ---
@@ -81,8 +81,11 @@ license-plate-recognition/
 │   └── comparison/
 ├── docs/
 │   ├── project_structure.md
-│   └── experiment_design.md
-└── tests/test_smoke.py
+│   ├── experiment_design.md
+│   └── hyperlpr3_baseline.md       # 方案一环境搭建与实测记录
+└── tests/
+    ├── test_smoke.py
+    └── test_integrated.py
 ```
 
 ---
@@ -90,7 +93,7 @@ license-plate-recognition/
 ## 四、环境要求
 
 - 操作系统：Windows / Linux / macOS
-- Python：3.9 – 3.12
+- Python：3.9 – 3.14（已在 Python 3.14 + WSL2 Ubuntu 上验证）
 - CPU 或 GPU（NVIDIA CUDA）均可，无需重新训练即可推理
 
 ---
@@ -110,6 +113,9 @@ cd license-plate-recognition
 pip install -r requirements.txt
 ```
 
+> Ubuntu 24.04+ 的 Python 受 PEP 668 保护，建议先建虚拟环境：
+> `python3 -m venv .venv && source .venv/bin/activate`。
+
 ### 3. 准备权重与测试图片
 
 - 权重：见 [`weights/README.md`](weights/README.md)，HyperLPR3 随包加载，分步式需手动下载
@@ -120,6 +126,8 @@ pip install -r requirements.txt
 ```bash
 # 方案一：集成式
 python scripts/run_integrated.py --source data/test_images
+# 方案一（分块检测，提升大图中远处小车牌召回）
+python scripts/run_integrated.py --source data/test_images --tile
 # 方案二：分步式
 python scripts/run_two_stage.py --source data/test_images
 ```
@@ -135,13 +143,28 @@ python scripts/compare.py --source data/test_images --ground-truth output/ground
 
 ---
 
-## 六、数据集
+## 六、方案一实测结果（CPU）
+
+测试图 `demo2.jpg`（4608×3456，小区停车场景，可见 6 个车牌）：
+
+| 模式 | 识别数量 | 识别到的车牌 |
+| --- | --- | --- |
+| low（320×320） | 2 | 冀A9F3J6、冀A7F691 |
+| high（640×640） | 3 | 冀A9F3J6、冀A8C309、苏E67A12 |
+| high + 分块 3×2 | 6 | 冀A8C309、冀A7F691、冀A7837P、冀A2036Y、苏E67A12、冀A9F3J6 |
+
+单张 CPU 推理约 0.36 s（整图）/ 1.1 s（分块）。环境搭建步骤、参数影响与失败案例分析见
+[`docs/hyperlpr3_baseline.md`](docs/hyperlpr3_baseline.md)。
+
+---
+
+## 七、数据集
 
 使用公开中文车牌数据集 **CCPD（Chinese City Parking Dataset）**，包含正常、模糊、旋转、倾斜、光照不均、雨雪天气等场景子集，详见 [`data/README.md`](data/README.md)。
 
 ---
 
-## 七、测试
+## 八、测试
 
 ```bash
 pytest tests/
@@ -149,7 +172,7 @@ pytest tests/
 
 ---
 
-## 八、团队分工
+## 九、团队分工
 
 | 成员 | 主要职责 |
 | --- | --- |
@@ -162,13 +185,13 @@ pytest tests/
 
 ---
 
-## 九、许可证
+## 十、许可证
 
 基于 [MIT License](LICENSE) 开源。
 
 ---
 
-## 十、参考资料
+## 十一、参考资料
 
 - [HyperLPR3](https://github.com/szad670401/HyperLPR)
 - [Ultralytics YOLO](https://github.com/ultralytics/ultralytics)

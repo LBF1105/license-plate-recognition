@@ -12,13 +12,13 @@ license-plate-recognition/
 ├── requirements.txt             # 依赖清单
 │
 ├── config/
-│   └── config.yaml              # 双方案配置：档位、权重、阈值、设备
+│   └── config.yaml              # 双方案配置：档位、权重、阈值、设备、分块参数
 │
 ├── src/plate_recognition/       # 核心源码包
 │   ├── __init__.py
 │   ├── integrated/              # 方案一：集成式
 │   │   ├── __init__.py
-│   │   └── hyperlpr_runner.py   # IntegratedRecognizer
+│   │   └── hyperlpr_runner.py   # IntegratedRecognizer（支持整图 / 分块）
 │   ├── two_stage/               # 方案二：分步式
 │   │   ├── __init__.py
 │   │   ├── detector.py          # PlateDetector（YOLO）
@@ -27,7 +27,7 @@ license-plate-recognition/
 │   └── common/                  # 共用工具
 │       ├── __init__.py
 │       ├── image_io.py          # 图像读取与列举
-│       ├── visualize.py         # 画框标注
+│       ├── visualize.py         # 画框标注（中文车牌转拼音）
 │       └── metrics.py           # 正确率与耗时
 │
 ├── scripts/                     # 可执行入口
@@ -47,14 +47,16 @@ license-plate-recognition/
 │
 ├── docs/
 │   ├── project_structure.md     # 本文档
-│   └── experiment_design.md     # 对照实验设计
+│   ├── experiment_design.md     # 对照实验设计
+│   └── hyperlpr3_baseline.md    # 方案一环境搭建与实测记录
 └── tests/
-    └── test_smoke.py
+    ├── test_smoke.py
+    └── test_integrated.py       # 集成式模块轻量单测（离线可跑）
 ```
 
 ## 模块职责
 
-- **IntegratedRecognizer（integrated/hyperlpr_runner.py）**：封装 HyperLPR3，框架内部完成检测与识别，一次调用即返回车牌号码与位置。
+- **IntegratedRecognizer（integrated/hyperlpr_runner.py）**：封装 HyperLPR3，框架内部完成检测与识别，一次调用即返回车牌号码与位置；`tile=True` 时按网格分块识别并按 IoU 去重，用于大图中远处小车牌的补召回。
 - **PlateDetector（two_stage/detector.py）**：加载 YOLO 权重，返回车牌边界框与置信度。
 - **PlateRecognizer（two_stage/recognizer.py）**：加载 LPRNet 权重，对裁剪车牌预处理、推理并 CTC 解码。
 - **TwoStagePipeline（two_stage/pipeline.py）**：串联检测与识别，完成"检测 → 裁剪 → 识别"。
@@ -65,6 +67,7 @@ license-plate-recognition/
 ```
 原图
  ├─ 方案一：IntegratedRecognizer.recognize() 内部完成检测+识别
+ │            （tile=True 时：切块 → 逐块识别 → 坐标回填 → 去重）
  └─ 方案二：PlateDetector.detect() → 裁剪 → PlateRecognizer.recognize()
                                 │
                                 ▼
@@ -76,4 +79,4 @@ license-plate-recognition/
 
 ## 配置加载
 
-脚本统一读取 `config/config.yaml`，两方案的档位、权重路径、阈值与设备均在配置中声明，修改配置即可切换，无需改动源码。
+脚本统一读取 `config/config.yaml`，两方案的档位、权重路径、阈值、设备与分块参数均在配置中声明，修改配置即可切换，无需改动源码。

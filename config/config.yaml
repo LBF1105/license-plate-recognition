@@ -8,6 +8,9 @@ integrated:
   name: HyperLPR3 集成式识别
   detect_level: high                 # 检测档位：low / high
   device: cpu                        # cpu 或 0（GPU）
+  tile: false                        # true 时分块检测，提升大图中远处小车牌的召回
+  tile_grid: [3, 2]                  # 分块网格：[横向块数, 纵向块数]
+  overlap: 0.15                      # 分块重叠比例，避免车牌被切在边界上
 
 # -------------------- 方案二：分步式（YOLO + LPRNet）--------------------
 two_stage:
