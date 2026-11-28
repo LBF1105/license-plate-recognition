@@ -24,6 +24,25 @@ two_stage:
     weights: weights/lprnet.pth      # LPRNet 字符识别权重
     device: cpu
 
+  # 识别前的几何校正，两级：
+  #   corner_net —— 角点回归网络，直接从裁剪图预测车牌四个顶点，透视拉正。
+  #                 这是主力手段，倾斜/斜视车牌会被真正摆成长方形。
+  #   deskew     —— 纯几何兜底（颜色连通域 + 霍夫直线），仅当角点网络
+  #                 不可用（权重缺失或回归结果形状不合理）时才生效。
+  # 两者都不使用任何标注信息，纯推理期图像处理。
+  preprocessing:
+    corner_net:
+      enabled: true
+      weights: weights/corner_net.pt  # 由 scripts/train_corner_net.py 训练产出
+      device: cpu
+    deskew:
+      enabled: true                # 仅作为角点网络的兜底
+      strategy: best_of            # 原图与拉正版一起识别，按 CTC 置信度择优
+      max_angle: 40                # 颜色四边形路径允许的最大倾角（度）
+      min_apply_angle: 2           # 倾角小于该值时不生成拉正候选
+      candidate_pads: [0.03, 0.05] # 透视变换时的外扩比例，多个值 = 多个候选
+      enable_rotate: false         # 梯度投影旋转兜底路径（实测噪声大，默认关）
+
 # -------------------- 公共路径 --------------------
 paths:
   test_images: data/test_images

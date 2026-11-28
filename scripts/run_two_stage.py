@@ -1,4 +1,4 @@
-"""方案二入口：运行 YOLO + LPRNet 分步式识别，支持单图与目录批量。
+"""方案二入口：运行 YOLO + 角点拉正 + LPRNet 分步式识别，支持单图与目录批量。
 
 用法:
     # 单张
@@ -7,6 +7,8 @@
     python scripts/run_two_stage.py --source data/test_images
     # 只出 CSV、不写结果图
     python scripts/run_two_stage.py --source data/test_images --no-save
+    # 关闭角点拉正 / 关闭纯几何兜底
+    python scripts/run_two_stage.py --no-corner --no-deskew
 
 批量结果会汇总写入 CSV（默认 output/two_stage/results.csv），
 列格式与 run_integrated.py 完全一致，可直接用 scripts/evaluate.py 评估。
@@ -25,6 +27,8 @@ import yaml
 
 from plate_recognition.common.image_io import list_images, load_image
 from plate_recognition.common.visualize import draw_results
+from plate_recognition.two_stage.corner_net import CornerPredictor
+from plate_recognition.two_stage.deskewer import PlateDeskewer
 from plate_recognition.two_stage.detector import PlateDetector
 from plate_recognition.two_stage.pipeline import TwoStagePipeline
 from plate_recognition.two_stage.recognizer import PlateRecognizer
@@ -86,6 +90,24 @@ def main() -> None:
     parser.add_argument("--no-save", action="store_true", help="不保存结果图，只输出 CSV")
     parser.add_argument("--csv", default=None, help="结果 CSV 路径，默认 <output>/results.csv")
     parser.add_argument("--output", default=None, help="结果图输出目录，默认取配置")
+    corner_group = parser.add_mutually_exclusive_group()
+    corner_group.add_argument(
+        "--corner", dest="corner", action="store_true", default=None,
+        help="强制开启角点拉正（覆盖配置）",
+    )
+    corner_group.add_argument(
+        "--no-corner", dest="corner", action="store_false",
+        help="关闭角点拉正（覆盖配置）",
+    )
+    deskew_group = parser.add_mutually_exclusive_group()
+    deskew_group.add_argument(
+        "--deskew", dest="deskew", action="store_true", default=None,
+        help="强制开启纯几何兜底拉正（覆盖配置）",
+    )
+    deskew_group.add_argument(
+        "--no-deskew", dest="deskew", action="store_false",
+        help="关闭纯几何兜底拉正（覆盖配置）",
+    )
     args = parser.parse_args()
 
     cfg = load_config(args.config)
@@ -108,7 +130,46 @@ def main() -> None:
     )
     recognizer.load()
 
-    pipeline = TwoStagePipeline(detector, recognizer)
+    pre_cfg = tcfg.get("preprocessing") or {}
+
+    # ---- 角点回归网络（主力拉正手段）----
+    corner_cfg = pre_cfg.get("corner_net") or {}
+    corner_enabled = bool(corner_cfg.get("enabled", True))
+    if args.corner is not None:
+        corner_enabled = args.corner
+    corner_predictor = None
+    if corner_enabled:
+        weights = Path(corner_cfg.get("weights", "weights/corner_net.pt"))
+        if weights.exists():
+            corner_predictor = CornerPredictor(
+                str(weights), corner_cfg.get("device", "cpu")
+            ).load()
+            print(f"角点拉正：开启（{weights}）")
+        else:
+            print(f"角点拉正：权重缺失 {weights}，改用纯几何兜底")
+    else:
+        print("角点拉正：关闭")
+
+    # ---- 纯几何兜底（角点网络不可用时才生效）----
+    deskew_cfg = pre_cfg.get("deskew") or {}
+    deskew_enabled = bool(deskew_cfg.get("enabled", True))
+    if args.deskew is not None:
+        deskew_enabled = args.deskew
+    deskewer = (
+        PlateDeskewer(
+            max_angle=float(deskew_cfg.get("max_angle", 40.0)),
+            min_apply_angle=float(deskew_cfg.get("min_apply_angle", 2.0)),
+            candidate_pads=tuple(
+                float(v) for v in deskew_cfg.get("candidate_pads", [0.03, 0.05])
+            ),
+            enable_rotate=bool(deskew_cfg.get("enable_rotate", False)),
+        )
+        if deskew_enabled
+        else None
+    )
+    print(f"几何兜底：{'开启' if deskew_enabled else '关闭'}")
+
+    pipeline = TwoStagePipeline(detector, recognizer, deskewer, corner_predictor)
 
     images = resolve_source(args.source, args.recursive)
     save = not args.no_save

@@ -1,5 +1,7 @@
 """分步式方案：LPRNet 字符识别模块。"""
 
+from typing import Tuple
+
 import cv2
 import numpy as np
 import torch
@@ -61,8 +63,12 @@ class PlateRecognizer:
             prev = idx
         return "".join(chars)
 
-    def recognize(self, plate_image: np.ndarray) -> str:
-        """识别单张裁剪车牌，返回号码字符串。"""
+    def recognize_with_score(self, plate_image: np.ndarray) -> Tuple[str, float]:
+        """识别并返回 (号码, 置信度)。
+
+        置信度取 CTC 解码后每个保留字符位置的 softmax 最大概率平均值，
+        是纯粹的模型自评，不依赖任何标注；用于在多个图像候选之间择优。
+        """
         if self.model is None:
             raise RuntimeError("识别模型未加载，请先调用 load()。")
         tensor = (
@@ -73,6 +79,24 @@ class PlateRecognizer:
         with torch.no_grad():
             output = self.model(tensor)
         preds = output[0] if isinstance(output, (tuple, list)) else output
-        preds = torch.softmax(preds, dim=-1)
-        _, indices = preds.max(dim=-1)
-        return self._decode(indices.view(-1).cpu().numpy())
+        probs = torch.softmax(preds, dim=-1)
+        conf, indices = probs.max(dim=-1)
+        indices = indices.view(-1).cpu().numpy()
+        conf = conf.view(-1).cpu().numpy()
+
+        chars = []
+        scores = []
+        prev = 0
+        for i, idx in enumerate(indices):
+            idx = int(idx)
+            if idx != 0 and idx != prev:
+                chars.append(self.CHARS[idx])
+                scores.append(float(conf[i]))
+            prev = idx
+        plate = "".join(chars)
+        score = float(np.mean(scores)) if scores else 0.0
+        return plate, score
+
+    def recognize(self, plate_image: np.ndarray) -> str:
+        """识别单张裁剪车牌，返回号码字符串。"""
+        return self.recognize_with_score(plate_image)[0]

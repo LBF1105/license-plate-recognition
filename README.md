@@ -39,17 +39,35 @@
 输入图片
    │
    ▼
-[ YOLO 车牌检测 ] ── 边界框
+[ YOLO 车牌检测 ] ── 轴对齐边界框
    │
    ▼
 [ 裁剪车牌区域 ]
    │
-   ▼
-[ LPRNet 字符识别 ] ── CTC 解码
+   ├── 候选 0：原图（保底，永远参与比较）
+   └── 候选 1：角点回归网络预测四顶点 → 透视拉正成标准长方形
    │
    ▼
-车牌号码 + 位置
+[ LPRNet 字符识别 ] ── CTC 解码，同时给出置信度
+   │
+   ▼
+取置信度最高的候选 ── 车牌号码 + 位置
 ```
+
+### 分步式的自动拉正（角点回归）
+
+YOLO 的 detect 头只输出轴对齐矩形的 4 个数，**数学上拿不到车牌的旋转**，
+倾斜车牌因此会被连着背景一起裁出来，再被拉伸到 168×48。
+
+`corner_net.py` 用一个约 2 MB 的卷积网络，直接从裁剪图回归出车牌的**四个真实顶点**，
+再按这四点做透视变换，把平行四边形拉成标准长方形（倾斜 6–15° 场景 82.1% → 92.9%）。
+
+它同样**不会替换原图**：原图与拉正版一起送 LPRNet，取 CTC 置信度最高者，
+所以只赚不赔。300 张 CCPD 从 **91.0% → 94.7%**，自采集 8 张湘牌从 **4/8 → 7/8**。
+详见 [docs/corner_net.md](docs/corner_net.md)。
+
+> 也尝试过颜色连通域、霍夫直线、字符笔画等六种纯几何方法求顶点，全部低于 baseline，
+> 原因与实验表都记在 docs/corner_net.md 第 2 节。
 
 两方案使用统一的可视化与评估口径（`common` 模块），保证对照公平。
 
@@ -68,13 +86,20 @@ license-plate-recognition/
 ├── src/plate_recognition/
 │   ├── integrated/                 # 方案一：HyperLPR3
 │   ├── two_stage/                  # 方案二：YOLO + LPRNet
+│   │   ├── detector.py             #   YOLOv8 检测
+│   │   ├── corner_net.py           #   角点回归网络（四顶点 + 透视拉正）
+│   │   ├── deskewer.py             #   纯几何兜底（颜色四边形）
+│   │   ├── recognizer.py           #   LPRNet 识别 + CTC 置信度
+│   │   └── pipeline.py             #   串联 + 多候选择优
 │   └── common/                     # 共用 IO、可视化、指标
 ├── scripts/
 │   ├── run_integrated.py           # 运行集成式
 │   ├── run_two_stage.py            # 运行分步式
 │   ├── compare.py                  # 双方案对照
 │   ├── parse_ccpd.py               # CCPD 真值解析
-│   └── evaluate.py                 # 按真值评估识别结果
+│   ├── evaluate.py                 # 按真值评估识别结果
+│   ├── train_corner_net.py         # 训练角点回归网络
+│   └── compare_deskew.py           # 消融实验：不拉正 vs 自动拉正
 ├── weights/                        # 权重（不进 git）
 ├── data/test_images/               # 测试图片（300 张 CCPD，随仓库提供）
 ├── samples/demo2.jpg               # 自带示例图，开箱即用
@@ -85,11 +110,15 @@ license-plate-recognition/
 ├── docs/
 │   ├── project_structure.md
 │   ├── experiment_design.md
-│   └── hyperlpr3_baseline.md       # 方案一环境搭建与实测记录
+│   ├── hyperlpr3_baseline.md       # 方案一环境搭建与实测记录
+│   ├── deskew.md                   # 纯几何拉正：原理、实验与结论
+│   └── corner_net.md               # 角点回归拉正：结构、训练与实测
 └── tests/
     ├── test_smoke.py
     ├── test_integrated.py
-    └── test_two_stage_pipeline.py
+    ├── test_two_stage_pipeline.py
+    ├── test_deskew.py
+    └── test_corner_net.py
 ```
 
 ---
@@ -145,6 +174,9 @@ python scripts/run_integrated.py --source /path/to/photos --tile
 
 # 方案二：分步式（需先按 weights/README.md 准备权重）
 python scripts/run_two_stage.py --source data/test_images
+
+# 方案二：关掉自动拉正，退回纯 AABB 裁剪（对照用）
+python scripts/run_two_stage.py --source data/test_images --no-deskew
 ```
 
 `--source` 默认值为 `data/test_images`，不带参数即批量检测该目录下所有图片。
